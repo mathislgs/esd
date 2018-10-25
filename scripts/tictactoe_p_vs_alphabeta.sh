@@ -123,48 +123,32 @@ minimax () { # takes the board, the depth and the player
 		local alpha=$4
 		local beta=$5
 		if [ "${current_player}" == "X" ]; then # Maximize
-			best=1000
+			best=-1000
 			for b in `possible_boards $current_board "X"`; do
 				temp_player=$(get_player $b)
 				if [[ $debug = 1 ]]; then
 					echo "maximize for $b" > /dev/stderr
 				fi
 				value=$(minimax ${current_depth} $temp_player $b $alpha $beta)
-				if [[ $value -lt $best ]]; then
-					echo "VALUE $value < BEST $best" > /dev/stderr
-					best=$value
-				fi
-				if [[ $alpha -lt $best ]]; then
-					echo "alpha $alpha < BEST $best" > /dev/stderr
-					alpha=$best
-				fi
-				if [[ $beta -le $alpha ]]; then
-					echo "cut tree for $b" > /dev/stderr
-					print_table $b > /dev/stderr
+				best=$( (( $best >= $value )) && echo "$best" || echo "$value" )
+				alpha=$( (( $best >= $alpha )) && echo "$best" || echo "$alpha" )
+				if [ $beta -le $alpha ]; then
 					break
 				fi
 			done
 			echo $best
 			return
 		else # Minimize
-			best=-1000
+			best=1000
 			for b in `possible_boards $current_board "O"`; do
 				temp_player=$(get_player $b)
 				if [[ $debug = 1 ]]; then
 					echo "minimize for $b" > /dev/stderr
 				fi
 				value=$(minimax ${current_depth} $temp_player $b $alpha $beta)
-				if [[ $value -gt $best ]]; then
-					echo "VALUE $value > BEST $best" > /dev/stderr
-					best=$value
-				fi
-				if [[ $beta -gt $best ]]; then
-					echo "BETA $beta > BEST $best" > /dev/stderr
-					beta=$best
-				fi
-				if [[ $beta -ge $alpha ]]; then
-					echo "cut tree for $b" > /dev/stderr
-					print_table $b > /dev/stderr
+				best=$( (( $best <= $value )) && echo "$best" || echo "$value" )
+				beta=$( (( $best <= $beta )) && echo "$best" || echo "$beta" )
+				if [ $beta -le $alpha ]; then
 					break
 				fi
 			done
@@ -257,7 +241,7 @@ play () {
 							clear
 							print_table $board
 							echo "Thinking... $((9-i))" > /dev/stderr
-							value=$(minimax ${depth+1} "O" ${sim_board} -10000 10000)
+							value=$(minimax ${depth+1} "O" ${sim_board} -1000 1000)
 							if [[ $value -gt $best_value ]]; then
 								best_value=$value
 								best_board=$sim_board
